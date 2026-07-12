@@ -15,8 +15,8 @@ def met(f):
     Fr=np.concatenate(Fr); Fp=np.concatenate(Fp)
     fM=np.abs(Fp-Fr).mean(); fR2=1-((Fr-Fp)**2).sum()/((Fr-Fr.mean())**2).sum()
     return eE,eR2,fM,fR2,len(Er)
-ds=[("u200 clean target","u200"),("keep_test compressed","keep"),
-    ("keep_full 869 compressed","keepfull"),("MPtrj-10k base","mptrj")]
+ds=[("weakly distorted (target)","u200"),("distorted (compressed OOD)","keep"),
+    ("distorted (full set)","keepfull"),("MPtrj (baseline)","mptrj")]
 print(f"{'dataset':22s} {'model':7s} {'n':>5s} | {'E MAE meV/at':>12s} {'E R²':>7s} | {'F MAE eV/Å':>10s} {'F R²':>7s}")
 print("-"*82)
 for name,tag in ds:

@@ -13,8 +13,8 @@ from ase.io import read
 
 SP = os.environ.get("ZBL_EVAL_DATA", "/path/to/vasp_eval/preflight") + "/splits"
 SETS = [
-    ("keep (compressed/OOD)", f"{SP}/keep_test.xyz", ":", "#c0392b"),
-    ("u200 (user target)", f"{SP}/u200_test.xyz", ":", "#2980b9"),
+    ("distorted (compressed OOD)", f"{SP}/keep_test.xyz", ":", "#c0392b"),
+    ("weakly distorted (target)", f"{SP}/u200_test.xyz", ":", "#2980b9"),
     ("cleanmix (clean user)", f"{SP}/cleanmix_train.xyz", ":300", "#e67e22"),
     ("MPtrj (baseline)", os.environ.get("ZBL_MPTRJ_XYZ", "/path/to/mptrj_stratified_10k.xyz"), ":300", "#27ae60"),
 ]

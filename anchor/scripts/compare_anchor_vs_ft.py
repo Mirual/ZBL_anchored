@@ -39,6 +39,13 @@ FIG = ROOT / "idea_uncertainty_gated_physics_anchor/figures/anchor_vs_ft.png"
 DIST_CUT = 1.5
 MODELS = ("vanilla", "anchor", "ft")
 GROUPS = ("all", "distorted", "normal", "mptrj")
+# Display-only labels (poster terminology). Keys above stay as stable lookup keys.
+GROUP_DISPLAY = {
+    "all": "all",
+    "distorted": "distorted (compressed OOD)",
+    "normal": "in-distribution (baseline)",
+    "mptrj": "MPtrj (baseline)",
+}
 MPTRJ_CANDIDATES = [ROOT / "idea_uncertainty_gated_physics_anchor/results/mptrj1k.xyz",
                     ROOT / "pct_compare_10k/data/mptrj_stratified_10k.xyz"]
 MPTRJ_N = 1000
@@ -143,7 +150,7 @@ def main() -> None:
         ax[1].bar(x + (i - 1) * w, [summary.get(g, {}).get(m, {}).get("F_MAE", 0) for g in GROUPS],
                   w, label=m, color=colors[m])
     for a, t in zip(ax, ("Force R² vs DFT (↑)", "Force MAE vs DFT [eV/Å] (↓)")):
-        a.set_xticks(x); a.set_xticklabels([f"{g}\n(n={nframes[g]})" for g in GROUPS])
+        a.set_xticks(x); a.set_xticklabels([f"{GROUP_DISPLAY[g]}\n(n={nframes[g]})" for g in GROUPS])
         a.set_title(t); a.legend()
     ax[0].axhline(0, color="k", lw=0.5)
     fig.suptitle("anchor vs fine-tuning vs vanilla — on the FT's held-out mixed_test (forces)")

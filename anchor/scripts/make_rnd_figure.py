@@ -13,7 +13,7 @@ def met(f):
             Fr.append(np.array(x["F_ref"]).reshape(-1)); Fp.append(np.array(x["F_pred"]).reshape(-1))
     Er,Ep,nat=map(np.array,(Er,Ep,nat)); Fr,Fp=np.concatenate(Fr),np.concatenate(Fp)
     return dict(fMAE=np.abs(Fp-Fr).mean(), fR2=1-((Fr-Fp)**2).sum()/((Fr-Fr.mean())**2).sum())
-DS=[("u200\ntarget","u200"),("keep_test\ncompressed","keep"),("keep_full\ncompressed","keepfull"),("MPtrj\nbase","mptrj")]
+DS=[("weakly distorted\n(target)","u200"),("distorted\n(compressed OOD)","keep"),("distorted\n(full set)","keepfull"),("MPtrj\n(baseline)","mptrj")]
 mods=[("vanilla","all_vanilla","#34495e"),("kNN-ρ anchor","all_anchor","#c0392b"),("RND anchor","rnd","#27ae60")]
 x=np.arange(len(DS)); w=0.26
 fig,ax=plt.subplots(1,2,figsize=(13,4.8))

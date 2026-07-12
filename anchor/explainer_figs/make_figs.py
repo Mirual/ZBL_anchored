@@ -59,7 +59,7 @@ ax.axvline(rlo, ls="--", color="#2980b9"); ax.axvline(rhi, ls="--", color="#2980
 ax.text(rlo, 1.05, f"$r_{{lo}}$={rlo:.3f}", color="#2980b9", ha="center", fontsize=9)
 ax.text(rhi, 1.05, f"$r_{{hi}}$={rhi:.2f}", color="#2980b9", ha="center", fontsize=9)
 ax.axvspan(1e-4, rlo, alpha=0.12, color="green"); ax.axvspan(rhi, 4, alpha=0.12, color="red")
-ax.text(3e-4, 0.5, "in-distribution\n(base) → w≈0\ncorrection off", color="#196f3d", fontsize=9)
+ax.text(3e-4, 0.5, "in-distribution\n(baseline) → w≈0\ncorrection off", color="#196f3d", fontsize=9)
 ax.text(0.8, 0.45, "OOD\n(compressed contacts)\nw≈1 → physics on", color="#922b21", fontsize=9, ha="center")
 ax.set_xscale("log"); ax.set_xlabel("novelty  $ρ_i$  (RND)"); ax.set_ylabel("correction weight  $w_i$")
 ax.set_title("② Gate: the correction turns on only for OOD atoms\n(smoothstep, θ from SelectiveNet — M3GNet)", fontweight="bold", fontsize=11)
@@ -101,11 +101,11 @@ nu = nov_of(f"{SPLITS}/u200_test.xyz", ":")
 nm = nov_of(MPTRJ, "0:120")
 fig, ax = plt.subplots(figsize=(8.5,5))
 bins = np.logspace(-4.5, 0.6, 45)
-for nv, c, lab in [(nm,"#7f8c8d","MPtrj (base)"),(nu,"#f39c12","u200 (clean target)"),(nk,"#c0392b","keep (compressed, OOD)")]:
+for nv, c, lab in [(nm,"#7f8c8d","MPtrj (baseline)"),(nu,"#f39c12","weakly distorted (target)"),(nk,"#c0392b","distorted (compressed OOD)")]:
     ax.hist(nv, bins=bins, alpha=0.55, color=c, label=f"{lab}  (max={nv.max():.3f})", density=True)
 ax.axvline(rlo, ls="--", color="#2980b9"); ax.text(rlo,ax.get_ylim()[1]*0.9,f" $r_{{lo}}$",color="#2980b9")
 ax.set_xscale("log"); ax.set_xlabel("novelty $ρ_i$ (per-atom, M3GNet)"); ax.set_ylabel("density")
-ax.set_title("Why the gate works: keep has a SHARP novelty tail (compressed contacts),\n"
+ax.set_title("Why the gate works: distorted (compressed OOD) has a SHARP novelty tail (compressed contacts),\n"
              "the base does not → the correction hits exactly the OOD atoms", fontweight="bold", fontsize=11)
 ax.legend(fontsize=9); ax.grid(alpha=0.3)
 fig.tight_layout(); fig.savefig(f"{OUT}/fig4_novelty.png", dpi=130); plt.close(fig); print("fig4 ok")

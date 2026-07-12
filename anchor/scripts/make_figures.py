@@ -54,12 +54,12 @@ def main():
     im = ax[0].imshow(M, aspect="auto", origin="lower", cmap="viridis_r",
                       extent=[bs[0], bs[-1], 0, len(As)])
     ax[0].set_yticks(np.arange(len(As)) + 0.5); ax[0].set_yticklabels(As)
-    ax[0].set(title=f"keep F MAE (vanilla={base:.1f}) vs anchor (A,b)", xlabel="b (Å)", ylabel="A (eV)")
+    ax[0].set(title=f"distorted (compressed OOD) F MAE (vanilla={base:.1f}) vs anchor (A,b)", xlabel="b (Å)", ylabel="A (eV)")
     plt.colorbar(im, ax=ax[0], label="F MAE eV/Å")
     bi, bj = np.unravel_index(M.argmin(), M.shape)
     ax[0].plot(bs[bj], bi + 0.5, "r*", ms=16)
     ax[1].bar(["vanilla", f"anchor\nA={As[bi]} b={bs[bj]}"], [base, M.min()], color=["#a53b3b", "#3ba56b"])
-    ax[1].set(title=f"keep F MAE: −{(1-M.min()/base)*100:.0f}%", ylabel="eV/Å")
+    ax[1].set(title=f"distorted (compressed OOD) F MAE: −{(1-M.min()/base)*100:.0f}%", ylabel="eV/Å")
     rr = np.linspace(0.1, 2.0, 200)
     V = As[bi] * np.exp(-rr / bs[bj]) * (1 - smoothstep(rr, RA, RB))
     ax[2].plot(rr, V, color="#3b6ea5", lw=2); ax[2].axvline(RA, ls="--", c="g"); ax[2].axvline(RB, ls="--", c="r")
@@ -70,12 +70,12 @@ def main():
     # ---- FIG 2 (KEY): overlap ----
     fig2, a2 = plt.subplots(figsize=(9, 5))
     bins = np.linspace(0, 3, 60)
-    a2.hist(dm, bins=bins, alpha=0.55, color="#3ba56b", density=True, label="MPtrj (normal)")
-    a2.hist(dk, bins=bins, alpha=0.55, color="#a53b3b", density=True, label="keep (compressed)")
+    a2.hist(dm, bins=bins, alpha=0.55, color="#3ba56b", density=True, label="MPtrj (baseline)")
+    a2.hist(dk, bins=bins, alpha=0.55, color="#a53b3b", density=True, label="distorted (compressed OOD)")
     a2.axvspan(0.9, 1.6, color="gray", alpha=0.15)
     a2.text(1.25, a2.get_ylim()[1]*0.85, "overlap zone\ndistance does NOT separate\n→ ρ-gating needed",
             ha="center", fontsize=10, color="#444")
-    a2.set(title="Why distance-gating breaks the base: min-dist keep vs MPtrj overlap",
+    a2.set(title="Why distance-gating breaks the base: min-dist distorted (compressed OOD) vs MPtrj (baseline) overlap",
            xlabel="min interatomic distance (Å)", ylabel="density"); a2.legend()
     fig2.tight_layout(); fig2.savefig(FIG / "distance_overlap.png", dpi=130)
     print(f"vanilla {base:.2f}, best anchor {M.min():.2f} (A={As[bi]},b={bs[bj]})")

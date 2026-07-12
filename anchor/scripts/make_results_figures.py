@@ -22,8 +22,8 @@ def met(f):
                 fMAE=np.abs(Fp-Fr).mean(),
                 fR2=1-((Fr-Fp)**2).sum()/((Fr-Fr.mean())**2).sum())
 
-DS = [("u200\n(clean target)", "u200"), ("keep_test\n(compressed)", "keep"),
-      ("keep_full 869\n(compressed)", "keepfull"), ("MPtrj-10k\n(base)", "mptrj")]
+DS = [("weakly distorted\n(target)", "u200"), ("distorted\n(compressed OOD)", "keep"),
+      ("distorted\n(full set)", "keepfull"), ("MPtrj\n(baseline)", "mptrj")]
 van = [met(f"all_vanilla_{t}.json") for _, t in DS]
 anc = [met(f"all_anchor_{t}.json") for _, t in DS]
 labels = [d for d, _ in DS]
@@ -85,13 +85,13 @@ fig, ax = plt.subplots(1, 2, figsize=(12, 4.3))
 ax[0].bar(comp, keep_t, color=["#34495e","#c0392b","#e8743b","#f1c40f"], edgecolor="k")
 ax[0].bar(comp, mp_t, alpha=0, edgecolor="none")
 for i, (k, m) in enumerate(zip(keep_t, mp_t)): ax[0].annotate(f"{k:.0f}/{m:.0f}ms", (i, max(k,m)), ha="center", va="bottom", fontsize=8)
-ax[0].set_ylabel("ms / structure"); ax[0].set_title("Component cost (keep/MPtrj)", fontweight="bold")
+ax[0].set_ylabel("ms / structure"); ax[0].set_title("Component cost — distorted (compressed OOD) / MPtrj (baseline)", fontweight="bold")
 ax[0].tick_params(axis="x", labelsize=8); ax[0].grid(axis="y", alpha=.3)
 modes = ["vanilla\n(1 fwd)", "anchor fused\n(1 fwd+ρ)", "anchor naive\n(2 fwd)"]
 tk = [43.5, 43.5+0.9+0.8, 43.5+40.5+0.9+0.8]
 bb = ax[1].bar(modes, tk, color=["#34495e","#27ae60","#c0392b"], edgecolor="k")
 for i, v in enumerate(tk): ax[1].annotate(f"×{v/43.5:.2f}\n{v:.0f}ms", (i, v), ha="center", va="bottom", fontsize=9)
-ax[1].set_ylabel("ms / structure"); ax[1].set_title("Full inference time (keep)", fontweight="bold")
+ax[1].set_ylabel("ms / structure"); ax[1].set_title("Full inference time — distorted (compressed OOD)", fontweight="bold")
 ax[1].set_ylim(0, 100); ax[1].grid(axis="y", alpha=.3)
 fig.tight_layout(); fig.savefig(FIG/"overhead.png", dpi=130); plt.close(fig)
 print("saved:", *[p.name for p in FIG.glob("heldout*.png")], "overhead.png")

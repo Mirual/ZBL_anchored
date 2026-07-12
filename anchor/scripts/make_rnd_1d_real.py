@@ -99,12 +99,12 @@ for a in ax:
     a.axvline(DK, color="#555", ls="--", lw=1.2)
 
 # ---- TOP: how much the model does NOT know the environment (novelty ρ) ----
-# points colored BY SET: keep (your compressed) vs MPtrj (base)
+# points colored BY SET: distorted (compressed OOD) vs MPtrj (baseline)
 mB, mK = np.isfinite(dB), np.isfinite(dK)
 ax[0].scatter(dK[mK], np.clip(NK[mK], 1e-5, None), s=12, alpha=0.30, color="#c0392b",
-              zorder=3, label="your keep (compressed 26_02_5and8)")
+              zorder=3, label="distorted (compressed OOD)")
 ax[0].scatter(dB[mB], np.clip(NB[mB], 1e-5, None), s=12, alpha=0.30, color="#1e8449",
-              zorder=2, label="MPtrj base (foundation)")
+              zorder=2, label="MPtrj (baseline)")
 xm, ym = binned(d, nov, edges, np.median)
 ax[0].plot(xm, np.clip(ym, 1e-5, None), color="#154360", lw=3.2, zorder=5,
            label="median ρ (all atoms in the d bin)")

@@ -26,8 +26,8 @@ CKPTS = {
     "FT user-only (+ZBL+F100E1)": os.environ.get("ZBL_DPA_FT_USER", "/path/to/dpa31_ft_user_only.pth"),
 }
 _SM = bool(os.environ.get("HTH_SMOKE"))                  # quick smoke: 3 frames/split
-SPLITS = {"keep (OOD/compressed)": read(KEEP, index=":3" if _SM else ":"),
-          "MPtrj (base)": read(MPTRJ, index=":3" if _SM else ":500")}
+SPLITS = {"distorted (compressed OOD)": read(KEEP, index=":3" if _SM else ":"),
+          "MPtrj (baseline)": read(MPTRJ, index=":3" if _SM else ":500")}
 print({k: len(v) for k, v in SPLITS.items()})
 
 
@@ -112,7 +112,7 @@ order = ["vanilla (no ZBL)", "pure ZBL (bolt-on)", "FT mix_e0pbe86", "FT user-on
 print(f"{'variant':32s} | {'keep F R²':>10s} | {'keep MAE':>9s} | {'MPtrj F R²':>11s} | {'MPtrj MAE':>9s}")
 for name in order:
     r = results.get(name, {})
-    k = r.get("keep (OOD/compressed)", {}); m = r.get("MPtrj (base)", {})
+    k = r.get("distorted (compressed OOD)", {}); m = r.get("MPtrj (baseline)", {})
     def fmt(x, p=3): return f"{x:.{p}f}" if isinstance(x, float) else "—"
     print(f"{name:32s} | {fmt(k.get('F_R2')):>10s} | {fmt(k.get('F_MAE'),1):>9s} | "
           f"{fmt(m.get('F_R2')):>11s} | {fmt(m.get('F_MAE'),3):>9s}")

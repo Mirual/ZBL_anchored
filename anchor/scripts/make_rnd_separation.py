@@ -75,41 +75,41 @@ auc_atom = auc(aB, aK)
 # above the gate threshold: ONLY keep? (one-sided separation)
 nK_at_gated = int((aK > RLO).sum()); nB_at_gated = int((aB > RLO).sum())
 nK_fr_gated = int((gK > 0).sum()); nB_fr_gated = int((gB > 0).sum())
-print(f"per-ATOM  ρ: AUC={auc_atom:.3f}  (keep shifted, but bulk overlaps)")
-print(f"atoms above threshold r_lo: keep {nK_at_gated}/{len(aK)} ({100*nK_at_gated/len(aK):.1f}%)  |  base {nB_at_gated}/{len(aB)}")
-print(f"structures where the gate fired (>0 atoms): keep {nK_fr_gated}/{len(K)}  |  base {nB_fr_gated}/{len(B)}")
+print(f"per-ATOM  ρ: AUC={auc_atom:.3f}  (distorted (compressed OOD) shifted, but bulk overlaps)")
+print(f"atoms above threshold r_lo: distorted (compressed OOD) {nK_at_gated}/{len(aK)} ({100*nK_at_gated/len(aK):.1f}%)  |  MPtrj (baseline) {nB_at_gated}/{len(aB)}")
+print(f"structures where the gate fired (>0 atoms): distorted (compressed OOD) {nK_fr_gated}/{len(K)}  |  MPtrj (baseline) {nB_fr_gated}/{len(B)}")
 print(f"per-FRAME gated-fraction: AUC(midrank)={auc(gB, gK):.3f}")
 
 fig, (axA, axB) = plt.subplots(1, 2, figsize=(14, 5.6))
 
 # ---- (A) per-atom: log-COUNT, so the TAIL past the threshold is visible ----
 bins = np.logspace(-5, 2.7, 64)
-axA.hist(np.clip(aB, 1e-5, None), bins=bins, color="#1e8449", alpha=0.6, label=f"MPtrj base ({len(aB)} atoms)")
-axA.hist(np.clip(aK, 1e-5, None), bins=bins, color="#c0392b", alpha=0.6, label=f"your keep ({len(aK)} atoms)")
+axA.hist(np.clip(aB, 1e-5, None), bins=bins, color="#1e8449", alpha=0.6, label=f"MPtrj (baseline) ({len(aB)} atoms)")
+axA.hist(np.clip(aK, 1e-5, None), bins=bins, color="#c0392b", alpha=0.6, label=f"distorted (compressed OOD) ({len(aK)} atoms)")
 axA.axvline(RLO, color="k", ls="--", lw=1.5)
 axA.axvspan(RLO, 10 ** 2.7, color="#c0392b", alpha=0.06, lw=0)
 axA.set_xscale("log"); axA.set_yscale("log")
 axA.set_xlabel("single-atom novelty ρ (log)"); axA.set_ylabel("number of atoms (log)")
 axA.set_title(f"(A) PER ATOM: bulk overlaps (AUC={auc_atom:.2f}),\n"
-              f"but PAST the threshold — ONLY keep ({nK_at_gated} atoms), base 0",
+              f"but PAST the threshold — ONLY distorted (compressed OOD) ({nK_at_gated} atoms), MPtrj (baseline) 0",
               fontsize=11, fontweight="bold")
-axA.text(RLO * 1.3, axA.get_ylim()[1] * 0.3, "threshold →\nonly your\nkeep here", color="#c0392b",
+axA.text(RLO * 1.3, axA.get_ylim()[1] * 0.3, "threshold →\nonly distorted\n(compressed OOD) here", color="#c0392b",
          fontsize=9, fontweight="bold")
 axA.legend(fontsize=9.5, loc="upper right")
 
 # ---- (B) per-frame: one-sided clean separation ----
-axB.scatter(mB, gB * 100, s=46, color="#1e8449", alpha=0.7, edgecolor="w", lw=0.5, label=f"MPtrj base ({len(B)} structures)")
-axB.scatter(mK, gK * 100, s=46, color="#c0392b", alpha=0.7, edgecolor="w", lw=0.5, label=f"your keep ({len(K)} structures)")
+axB.scatter(mB, gB * 100, s=46, color="#1e8449", alpha=0.7, edgecolor="w", lw=0.5, label=f"MPtrj (baseline) ({len(B)} structures)")
+axB.scatter(mK, gK * 100, s=46, color="#c0392b", alpha=0.7, edgecolor="w", lw=0.5, label=f"distorted (compressed OOD) ({len(K)} structures)")
 axB.axhline(0.5, color="#555", ls=":", lw=1.2)
 axB.set_xlabel("min interatomic distance in structure, Å")
 axB.set_ylabel("fraction of \"novel\" atoms in structure (ρ>threshold), %")
-axB.set_title(f"(B) PER STRUCTURE: the gate fired on {nK_fr_gated}/{len(K)} keep and {nB_fr_gated}/{len(B)} base\n"
+axB.set_title(f"(B) PER STRUCTURE: the gate fired on {nK_fr_gated}/{len(K)} distorted (compressed OOD) and {nB_fr_gated}/{len(B)} MPtrj (baseline)\n"
               "→ fired = your OOD (100% accuracy); silent = base-like structure",
               fontsize=11, fontweight="bold")
 axB.legend(fontsize=9.5, loc="center right")
 axB.grid(alpha=0.25)
 
-fig.suptitle("Separation your keep ↔ MPtrj base: bulk overlaps, but the gate FIRING = your OOD (base NEVER fires)",
+fig.suptitle("Separation distorted (compressed OOD) ↔ MPtrj (baseline): bulk overlaps, but the gate FIRING = your OOD (MPtrj (baseline) NEVER fires)",
              fontsize=12.5, fontweight="bold")
 fig.tight_layout(rect=[0, 0, 1, 0.95])
 out = WS + "/figures/rnd_separation.png"

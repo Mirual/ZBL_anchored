@@ -1,47 +1,65 @@
-# ZBL_anchored — an uncertainty-gated physical anchor for foundation MLIPs
+<p align="center">
+  <img src="figures/anch_prez.png" alt="Unseen out-of-domain structures — anchored by ZBL" width="640">
+</p>
 
-Foundation machine-learned interatomic potentials (MLIPs) such as **MACE-MH** and
-**DPA-3.1** are trained on near-equilibrium structures. They *soften* in
-high-energy / distorted regions — compressed bonds, defects, radiation cascades —
-where there is little or no training data, and produce unphysically low forces
-there. Built-in ZBL repulsion only covers the very-short-range limit (r → 0); the
-compressed-but-bonded zone (~0.5–2 Å) is left to the GNN to extrapolate.
+# ZBL_anchored — a robust physical anchor for foundation MLIPs
 
-This repository implements a lightweight fix that needs **no retraining and does
-not touch the base model's weights**:
+> **Towards Robust Machine-Learned Interatomic Potentials for Radiation-Damaged
+> Waste Immobilization Materials**
+> Rudenko M.A., Mitrofanov A.A. — Chemistry Department, Lomonosov Moscow State University
+
+Nuclear waste forms accumulate strongly non-equilibrium local environments —
+recoil events, transmutation, defect build-up. Interatomic potentials must stay
+**stable far from equilibrium** yet accurate for chemically complex oxides. But
+foundation machine-learned interatomic potentials (MLIPs) such as **MACE-MH**,
+**DPA-3.1**, **M3GNet**, and **CHGNet** are trained near equilibrium and *soften*
+in distorted regions: on a distorted perovskite-family set (19 elements, DFT/VASP)
+the force R² is **0.65 (MACE-MH-0) / −0.03 (DPA-3.1)**, and fine-tuning *destroys*
+the inherited baseline.
+
+This repository adds analytic short-range physics **at inference time, only where
+the model is provably uncertain** — no retraining, and the base model's weights
+are never touched:
 
 $$
-E \;=\; E_\text{GNN} \;+\; \sum_{i<j} w\!\big(\text{novelty}_{ij}\big)\; V_\text{phys}(r_{ij})
+E = E_\text{GNN} + \sum_{i<j} w(\rho)\,\Delta V(r), \qquad
+F = F_\text{GNN} - \lambda \sum_{i<j} w(\rho)\,\Delta V'(r)
 $$
 
-- **`novelty`** — a per-atom extrapolation score computed from the foundation
-  model's *own* latent features (a Random Network Distillation gate, ported from
-  RL exploration). It is large exactly where the model is out-of-distribution.
-- **`w(novelty)`** — a smooth gate calibrated with a SelectiveNet-style
-  risk–coverage criterion: `w = 0` where the model is confident (predictions stay
-  bit-identical to vanilla) and `w → 1` on genuinely novel local environments.
-- **`V_phys`** — a robust short-range physical repulsion (extended ZBL /
-  Born–Mayer, or a per-pair physics residual) calibrated cheaply from dimer scans.
+<p align="center">
+  <img src="figures/method_scheme.png" alt="Method scheme: frozen foundation MLIP + gated physics add-on" width="960">
+</p>
 
-ZBL is recovered as the special case `novelty → 1` as `r → 0`. The correction is
-**additive at the output and self-nulling at equilibrium**, so accuracy on the
-in-distribution set is preserved by construction while distorted structures are
-pulled back toward the correct physics.
+- **ρ (uncertainty, RND)** — a per-atom novelty score `‖pred(dᵢ) − target(dᵢ)‖²`
+  from a Random Network Distillation head over the model's own descriptors: small
+  in-distribution, large out-of-distribution (OOD).
+- **w(ρ) (gate)** — a smooth gate calibrated by a SelectiveNet risk–coverage
+  criterion `θ = (r_lo, λ)`. Where the gate is silent (`w = 0`, in-distribution)
+  the output is **bit-identical** to vanilla; on OOD it ramps to `w → 1`.
+- **ΔV (pair physics)** — the missing short-range repulsion `w·[V_ZBL − V_dimer]₊`
+  calibrated from dimer scans. ZBL is the special case `w → 1` as `r → 0`.
 
-## Key results (MACE-MH-0 base)
+## Key results — force R² on three held-out sets (vanilla → anchor)
 
-| Dataset | vanilla F R² | naive kNN gate | **RND + SelectiveNet gate** |
-|---|---|---|---|
-| u200 (clean target) | 0.998 | −2.03 | **0.998** (unchanged) |
-| MPtrj (in-distribution base) | 0.986 | −3.03 | **0.986** (unchanged) |
-| keep_test (compressed) | 0.650 | 0.728 | **0.738** (F MAE −7.8%) |
+| Model | MPtrj (baseline) | weakly distorted (target) | distorted (compressed OOD) | ΔF-MAE | overhead (fused) |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **MACE-MH-0** | 0.986 ≡ | 0.998 ≡ | 0.650 → **0.829** | −6.7% | ×1.07 |
+| **DPA-3.1** | 0.963 ≡ | 0.995 ≡ | −0.033 → **0.733** | −17.0% | ×1.40 |
+| **M3GNet** | 0.597 ≡ | 0.992 ≡ | 0.104 → **0.782** | −17.1% | ×1.17 |
+| **CHGNet** | 0.936 ≡ | 0.990 ≡ | 0.005 → 0.014 | −1.9% | ×1.20 |
 
-A naive latent-distance (kNN) gate *destroys* the base through false positives
-(it fired on 93 % of base atoms); the RND gate separates compressed environments
-from the base by ~10⁴× in novelty magnitude, giving a formal risk–coverage
-guarantee. The method also improves high-pressure equations of state, MD
-short-range stability, and radiation-damage observables, and transfers across
-architectures (MACE, DPA-3.1, and — for comparison — M3GNet / CHGNet).
+On the **MPtrj (baseline)** and the **weakly distorted (target)** sets the anchor is
+**bit-identical** to vanilla (the gate is silent, `w = 0` — marked `≡`). OOD force R²
+is restored to **0.73–0.83 on three of four MLIPs with zero weight updates**.
+(CHGNet's 64-d descriptors give no novelty tail, so the gate cannot fire there.)
+
+**The gating signal is the method.** RND novelty separates the distorted set from the
+baseline with **0 % false positives** (max baseline ρ = 0.010 vs threshold r_lo = 0.05);
+the rejected first-generation k-NN distance gate overlaps and flags 22 % of baseline /
+72 % of target atoms. Fine-tuning instead degrades every in-distribution set
+(MPtrj 0.98 → 0.70), diverges on the distorted set, and shrinks element coverage
+from 89 to 19 species. The anchor is deployment-ready: **+1–4 MB, ×1.07–1.4 cost,
+LAMMPS MD to ~70 k atoms/GPU.**
 
 ## Repository layout
 
@@ -59,7 +77,7 @@ ZBL_anchored/
 │   └── examples/           #   ready-to-edit input decks
 ├── benchmarks/             # MACE acceleration benchmarks (fp32 / cuEquivariance / torch.compile)
 ├── patches/                # bit-identical safe-optimisation patch for MACE
-├── figures/                # poster + headline figure panels + figure-generation code
+├── figures/                # poster, hero image, method scheme + figure-generation code
 ├── config.example.env      # every external path is an env var — copy to config.env and fill in
 └── environment.yml
 ```
@@ -71,11 +89,10 @@ Each sub-directory has its own README with run instructions.
 By design the repo contains **code only**. The following are excluded (see
 `.gitignore`) and must be supplied by the user:
 
-- **Foundation model weights** (MACE-MH-0/1, DPA-3.1). These are governed by the
+- **Foundation model weights** (MACE-MH-0/1, DPA-3.1, …). These are governed by the
   upstream model licenses (e.g. the ACEsuit models are released under a
-  non-commercial academic license) and are **not** redistributed here. Obtain them
-  from the upstream projects — see `mace_zbl_training/scripts/01_download_models.py`
-  and the ACEsuit / DeepModeling releases.
+  non-commercial academic license) and are **not** redistributed here. See
+  `mace_zbl_training/scripts/01_download_models.py` and the upstream releases.
 - **Evaluation datasets** (VASP splits, MPtrj subsets). Point the scripts at your
   own copies via the environment variables in `config.example.env`.
 - **Generated artifacts** (`rnd.pt`, `rho_reference.npz`, dimer tables) — build
@@ -85,7 +102,7 @@ By design the repo contains **code only**. The following are excluded (see
 ## Setup
 
 ```bash
-git clone <this-repo> ZBL_anchored && cd ZBL_anchored
+git clone https://github.com/Mirual/ZBL_anchored.git && cd ZBL_anchored
 conda env create -f environment.yml    # or use your own env with ASE/MACE/torch
 cp config.example.env config.env        # then edit config.env with paths on your machine
 source config.env
@@ -98,12 +115,13 @@ an environment variable documented in `config.example.env`.
 
 The code in this repository is released under the **MIT License** (see `LICENSE`).
 Foundation model weights, third-party libraries (MACE, DPA/DeePMD-kit,
-cuEquivariance, e3nn, ASE, …) and any datasets retain their own licenses and are
-not covered by this repository's license.
+cuEquivariance, e3nn, ASE, …) and datasets retain their own licenses and are not
+covered by this repository's license.
 
-## Citation / provenance
+## Citation
 
-This is research code accompanying the "uncertainty-gated physical anchor"
-(ZBL-anchored) study. The `patches/mace_safe_opts.patch` applies against
-ACEsuit/mace commit `4d2da09`. If you use this work, please also cite the
-underlying MACE, DPA-3.1, RND, and SelectiveNet references.
+If you use this work, please cite the accompanying study (poster: *Towards Robust
+Machine-Learned Interatomic Potentials for Radiation-Damaged Waste Immobilization
+Materials*, Rudenko & Mitrofanov, Lomonosov MSU) and the underlying MACE, DPA-3.1,
+RND, and SelectiveNet references. The `patches/mace_safe_opts.patch` applies against
+ACEsuit/mace commit `4d2da09`.

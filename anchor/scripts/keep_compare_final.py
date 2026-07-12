@@ -100,13 +100,13 @@ def main():
     for xi, v in zip(x, r2v):
         ax[0].text(xi, max(v, -0.5) + 0.02, ("diverges" if v < -1 else f"{v:.3f}"), ha="center", fontsize=9)
     ax[0].set_xticks(x); ax[0].set_xticklabels(["vanilla", "anchor", "fine-tune"])
-    ax[0].set_title("Force R² vs DFT on keep (↑)  [FT clipped]"); ax[0].axhline(0, color="k", lw=0.5)
+    ax[0].set_title("Force R² vs DFT on distorted (compressed OOD) (↑)  [FT clipped]"); ax[0].axhline(0, color="k", lw=0.5)
     ax[1].bar(x, np.log10(maev), w, color=[c for _, c in models])
     for xi, v in zip(x, maev):
         ax[1].text(xi, np.log10(v) + 0.05, f"{v:.1f}" if v < 1e3 else f"{v:.0e}", ha="center", fontsize=9)
     ax[1].set_xticks(x); ax[1].set_xticklabels(["vanilla", "anchor", "fine-tune"])
-    ax[1].set_title("log₁₀ Force MAE vs DFT on keep [eV/Å] (↓)")
-    fig.suptitle(f"anchor vs fine-tune on OOD short-contact keep (n={len(ref)}, gate active) — forces")
+    ax[1].set_title("log₁₀ Force MAE vs DFT on distorted (compressed OOD) [eV/Å] (↓)")
+    fig.suptitle(f"anchor vs fine-tune on the distorted (compressed OOD) set (n={len(ref)}, gate active) — forces")
     fig.tight_layout(); fig.savefig(WS / "figures/anchor_vs_ft_keep.png", dpi=140)
     import shutil
     shutil.copy(WS / "figures/anchor_vs_ft_keep.png", WS / "cool/figures/anchor_vs_ft_keep.png")

@@ -37,12 +37,10 @@ slurm-*.out
 *.slurm.out
 .lastjob
 
-# --- Figures: keep only the curated ones under figures/, ignore scratch -----
-# (curated poster/panels are force-added; everything else stays out)
+# --- Figures: only the curated figures/ tree is committed --------------------
+*.png
 *.pdf
-figures/**/*.png
-!figures/poster/**
-!figures/panels/**
+!figures/**
 
 # --- Third-party / vendored (never publish) ---------------------------------
 pylibs/

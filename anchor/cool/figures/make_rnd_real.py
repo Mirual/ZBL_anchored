@@ -49,8 +49,8 @@ def outputs(xyz, n):
 
 
 SETS = [("MPtrj (baseline)", MPTRJ, 80, "#27ae60"),
-        ("u200 (target)", f"{SP}/u200_test.xyz", 22, "#2980b9"),
-        ("keep (compressed/OOD)", f"{SP}/keep_test.xyz", 80, "#c0392b")]
+        ("weakly distorted (target)", f"{SP}/u200_test.xyz", 22, "#2980b9"),
+        ("distorted (compressed OOD)", f"{SP}/keep_test.xyz", 80, "#c0392b")]
 res = {name: outputs(xyz, n) for name, xyz, n, _ in SETS}
 
 
@@ -68,20 +68,20 @@ fig, (axA, axB) = plt.subplots(1, 2, figsize=(14, 5.4))
 # ---- (A) predictor vs target component-wise (real descriptors) ----
 # Two groups, as in the schematic: baseline (predictor≈target, on the diagonal) and keep (diverges more).
 NPTS = 4000
-Tk, Pk, _ = res["keep (compressed/OOD)"]
+Tk, Pk, _ = res["distorted (compressed OOD)"]
 Tb, Pb, _ = res["MPtrj (baseline)"]
 ik = rng.choice(Tk.size, size=min(NPTS, Tk.size), replace=False)
 ib = rng.choice(Tb.size, size=min(NPTS, Tb.size), replace=False)
 axA.scatter(Tk.ravel()[ik], Pk.ravel()[ik], s=8, alpha=0.30, color="#c0392b",
-            label=f"keep (compressed/OOD): R²={r2(Tk.ravel(), Pk.ravel()):+.2f} — diverges")
+            label=f"distorted (compressed OOD): R²={r2(Tk.ravel(), Pk.ravel()):+.2f} — diverges")
 axA.scatter(Tb.ravel()[ib], Pb.ravel()[ib], s=8, alpha=0.45, color="#27ae60",
-            label=f"MPtrj baseline: R²={r2(Tb.ravel(), Pb.ravel()):+.2f} — on the diagonal")
+            label=f"MPtrj (baseline): R²={r2(Tb.ravel(), Pb.ravel()):+.2f} — on the diagonal")
 lim = [min(axA.get_xlim()[0], axA.get_ylim()[0]), max(axA.get_xlim()[1], axA.get_ylim()[1])]
 axA.plot(lim, lim, "k--", lw=1.2, label="ideal predictor = target")
 axA.set_xlim(lim); axA.set_ylim(lim)
 axA.set_xlabel("TARGET network output (frozen), per channel"); axA.set_ylabel("PREDICTOR network output (trained on baseline)")
 axA.set_title("(A) Real data: predictor ≈ target on the baseline (green on the diagonal),\n"
-              "diverges more on keep (red) — especially the tail of compressed contacts", fontsize=10.5, fontweight="bold")
+              "diverges more on distorted (red) — especially the tail of compressed contacts", fontsize=10.5, fontweight="bold")
 axA.legend(fontsize=8.5, loc="upper left"); axA.grid(alpha=0.25)
 
 # ---- (B) novelty ρ by dataset (real) ----
@@ -95,7 +95,7 @@ axB.axhline(RLO, color="k", ls="--", lw=1.1); axB.text(0.6, RLO, " r_lo (gate th
 axB.set_yscale("log"); axB.set_ylabel("novelty ρ = ‖pred − target‖² (log)")
 for i, n in enumerate(names):
     axB.annotate(f"med {np.median(res[n][2]):.2g}", (i + 1, np.median(res[n][2])), fontsize=8, ha="center", va="bottom")
-axB.set_title("(B) Real novelty ρ: baseline ≈0 (familiar),\nkeep spikes up (unfamiliar) → the gate opens",
+axB.set_title("(B) Real novelty ρ: baseline ≈0 (familiar),\ndistorted spikes up (unfamiliar) → the gate opens",
               fontsize=10.5, fontweight="bold"); axB.grid(axis="y", alpha=0.3, which="both")
 
 fig.suptitle("RND on OUR data (real-data analog of the guide_rnd_mechanism schematic)", fontsize=13, fontweight="bold")

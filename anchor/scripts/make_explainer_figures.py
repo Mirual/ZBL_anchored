@@ -16,10 +16,10 @@ def fig_rho_separation():
     z = np.load(RES / "rho_check.npz"); rk, rm = z["rk"], z["rm"]
     fig, ax = plt.subplots(figsize=(9, 5))
     bins = np.linspace(0, 1, 40)
-    ax.hist(rm, bins=bins, density=True, alpha=0.6, color="#3ba56b", label=f"MPtrj (normal), med={np.median(rm):.2f}")
-    ax.hist(rk, bins=bins, density=True, alpha=0.6, color="#a53b3b", label=f"keep (distorted), med={np.median(rk):.2f}")
+    ax.hist(rm, bins=bins, density=True, alpha=0.6, color="#3ba56b", label=f"MPtrj (baseline), med={np.median(rm):.2f}")
+    ax.hist(rk, bins=bins, density=True, alpha=0.6, color="#a53b3b", label=f"distorted (compressed OOD), med={np.median(rk):.2f}")
     ax.axvline(0.5, ls="--", c="k", lw=0.8)
-    ax.set(title="ρ SEPARATES normal from distorted (which distance could not do)",
+    ax.set(title="ρ SEPARATES baseline from distorted (which distance could not do)",
            xlabel="ρ = extrapolation-score (0=in-dist, 1=OOD)", ylabel="density")
     ax.legend()
     ax.text(0.05, ax.get_ylim()[1]*0.6, "MPtrj\npiles up at ρ=0\n→ correction OFF\n→ base intact", color="#2a7", fontsize=10)
