@@ -1,0 +1,65 @@
+# --- Local machine configuration (NEVER commit real paths) -----------------
+config.env
+*.local.env
+
+# --- Model weights (user-supplied, upstream-licensed, not redistributable) --
+*.model
+*.pth
+*.pt
+*.dp
+*-mliap_lammps.pt
+
+# --- Datasets & generated numerical artifacts -------------------------------
+*.extxyz
+*.xyz
+*.npz
+*.npy
+*.pkl
+*.lammps          # LAMMPS data files
+*.lammpstrj
+*.dump
+rnd.pt
+rho_reference.npz
+
+# --- Result / output directories --------------------------------------------
+results/
+runs/
+run_*/
+outputs/
+*.json            # regenerated benchmark/validation outputs (see per-dir READMEs)
+
+# --- Logs & scheduler output ------------------------------------------------
+*.log
+*.out
+*.err
+log.*
+slurm-*.out
+*.slurm.out
+.lastjob
+
+# --- Figures: keep only the curated ones under figures/, ignore scratch -----
+# (curated poster/panels are force-added; everything else stays out)
+*.pdf
+figures/**/*.png
+!figures/poster/**
+!figures/panels/**
+
+# --- Third-party / vendored (never publish) ---------------------------------
+pylibs/
+deepmd-kit-src/
+site-packages/
+
+# --- Python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+.venv/
+env/
+
+# --- Editors / OS ------------------------------------------------------------
+.claude/
+.vscode/
+.idea/
+.DS_Store
+*.swp

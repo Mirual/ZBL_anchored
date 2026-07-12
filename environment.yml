@@ -1,0 +1,30 @@
+# Reference conda environment for ZBL_anchored.
+# The exact pins used during the study are not critical; any recent MACE + ASE +
+# PyTorch stack works. GPU (CUDA) is strongly recommended for the MLIP evals.
+#
+#   conda env create -f environment.yml
+#   conda activate zbl-anchored
+#
+# Optional extras, install only for the parts you run:
+#   - cuequivariance / cuequivariance-torch  -> fused MACE acceleration (benchmarks/)
+#   - deepmd-kit (>=3.1)                      -> DPA-3.1 evals + LAMMPS native pair_style
+#   - lammps (with MLIAP unified + Python)    -> lammps/ deployment
+name: zbl-anchored
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - numpy
+  - scipy
+  - matplotlib
+  - scikit-learn
+  - ase>=3.23
+  - pytorch>=2.4          # install the CUDA build appropriate for your GPU
+  - pip:
+      - mace-torch>=0.3.15
+      - e3nn>=0.4.4
+      # --- optional, uncomment as needed --------------------------------
+      # - cuequivariance-torch
+      # - cuequivariance-ops-torch-cu12
+      # - deepmd-kit>=3.1     # DPA-3.1 backend (or install via conda)

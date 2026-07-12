@@ -1,0 +1,70 @@
+diff --git a/mace/modules/blocks.py b/mace/modules/blocks.py
+index af60244..15120ba 100644
+--- a/mace/modules/blocks.py
++++ b/mace/modules/blocks.py
+@@ -1309,18 +1309,23 @@ class RealAgnosticResidualNonLinearInteractionBlock(InteractionBlock):
+         sc = self.skip_tp(node_feats)
+         node_feats = self.linear_up(node_feats)
+         node_feats_res = self.linear_res(node_feats)
+-        node_feats_attrs = torch.cat(
+-            [node_feats, node_attrs],
+-            dim=-1,
+-        )  # Concatenate features and attributes to do one LAMMPS exchange
+-        node_feats_attrs = self.handle_lammps(
+-            node_feats_attrs,
+-            lammps_class=lammps_class,
+-            lammps_natoms=lammps_natoms,
+-            first_layer=first_layer,
+-        )
+-        node_feats = node_feats_attrs[:, : node_feats.shape[-1]]
+-        node_attrs = node_feats_attrs[:, node_feats.shape[-1] :]
++        # The concat+exchange+slice round-trip is only needed for the real LAMMPS
++        # ghost-atom exchange; handle_lammps is the identity when lammps_class is None
++        # (or under torch.jit scripting), so on the standard path this is skipped to
++        # avoid a per-layer [n_nodes, feats+attrs] allocation. Bit-identical outputs.
++        if lammps_class is not None:
++            node_feats_attrs = torch.cat(
++                [node_feats, node_attrs],
++                dim=-1,
++            )  # Concatenate features and attributes to do one LAMMPS exchange
++            node_feats_attrs = self.handle_lammps(
++                node_feats_attrs,
++                lammps_class=lammps_class,
++                lammps_natoms=lammps_natoms,
++                first_layer=first_layer,
++            )
++            node_feats = node_feats_attrs[:, : node_feats.shape[-1]]
++            node_attrs = node_feats_attrs[:, node_feats.shape[-1] :]
+         source_embedding = self.source_embedding(node_attrs)
+         target_embedding = self.target_embedding(node_attrs)
+         edge_feats = torch.cat(
+diff --git a/mace/modules/models.py b/mace/modules/models.py
+index 5e2d604..f3bb41c 100644
+--- a/mace/modules/models.py
++++ b/mace/modules/models.py
+@@ -578,7 +578,7 @@ class ScaleShiftMACE(MACE):
+         inter_e = scatter_sum(node_inter_es, data["batch"], dim=-1, dim_size=num_graphs)
+ 
+         total_energy = e0 + inter_e
+-        node_energy = node_e0.clone().double() + node_inter_es.clone().double()
++        node_energy = node_e0.double() + node_inter_es.double()
+ 
+         forces, virials, stress, hessian, edge_forces = get_outputs(
+             energy=inter_e,
+diff --git a/mace/modules/radial.py b/mace/modules/radial.py
+index 5e19204..6db39ee 100644
+--- a/mace/modules/radial.py
++++ b/mace/modules/radial.py
+@@ -48,7 +48,11 @@ class BesselBasis(torch.nn.Module):
+ 
+     def forward(self, x: torch.Tensor) -> torch.Tensor:  # [..., 1]
+         numerator = torch.sin(self.bessel_weights * x)  # [..., num_basis]
+-        return self.prefactor * (numerator / x)
++        # Guard the removable 1/r singularity at r->0 (coincident atoms / self-image
++        # edges in tight cells). 1e-6 A is far below any physical interatomic distance,
++        # so for valid structures this is a bit-identical no-op and only prevents the
++        # inf/NaN forces produced on the create_graph (force/Hessian) path at r->0.
++        return self.prefactor * (numerator / x.clamp_min(1e-6))
+ 
+     def __repr__(self):
+         return (

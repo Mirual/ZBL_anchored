@@ -1,0 +1,16 @@
+# DPA-3.1 run-0: energy and forces on a fixed frame (validation vs DeepPot)
+units         metal
+boundary      p p p
+atom_style    atomic
+read_data     data_cu256.lammps
+
+pair_style    deepmd /path/to/dpa-3.1-3m-ft.pth
+pair_coeff    * * Cu
+
+thermo_style  custom step pe fmax
+thermo        1
+dump          f all custom 1 forces_run0.dump id fx fy fz
+dump_modify   f sort id format float %.12e
+
+run 0
+print "PE_FULL: $(pe:%.12f)"

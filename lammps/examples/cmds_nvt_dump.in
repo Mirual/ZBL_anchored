@@ -1,0 +1,8 @@
+# Example of a user MD scenario for --mode custom.
+# The potential is already attached by the driver (fix external) — here only dynamics/output.
+velocity all create 600.0 4928459 mom yes rot yes dist gaussian
+fix md all nvt temp 600.0 600.0 0.1
+timestep 0.001
+thermo 50
+dump traj all custom 100 traj.lammpstrj id type x y z fx fy fz
+run 1000

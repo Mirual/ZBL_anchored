@@ -1,0 +1,16 @@
+# MACE-MH-1 (mliap unified, fp32) run-0: validate E/F vs ASE
+units         metal
+boundary      p p p
+atom_style    atomic
+read_data     ../dpa_smoke/data_cu256.lammps
+
+pair_style    mliap unified ../models/mh1-fp32.model-mliap_lammps.pt 0
+pair_coeff    * * Cu
+
+thermo_style  custom step pe fmax
+thermo        1
+dump          f all custom 1 forces_mace_run0.dump id fx fy fz
+dump_modify   f sort id format float %.12e
+
+run 0
+print "PE_FULL: $(pe:%.12f)"
