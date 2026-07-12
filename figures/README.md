@@ -4,9 +4,12 @@ Curated images for the ZBL-anchored study, kept separate from the code.
 
 ```
 figures/
-├── poster/            # the A0 conference poster (PNG + PDF)
-├── panels/            # the individual poster figure panels
-└── poster_figures.py  # code that regenerates the poster panels
+├── poster/                 # the A0 conference poster (PNG + PDF)
+├── panels/                 # the individual poster figure panels
+├── anch_prez.png           # hero illustration (README header)
+├── method_scheme.png       # method flow diagram (README)
+├── make_method_scheme.py   # regenerates method_scheme.png
+└── poster_figures.py       # code that regenerates the poster panels
 ```
 
 - `poster/physanchor_poster_A0.png` / `.pdf` — the full poster.
