@@ -22,8 +22,8 @@ the model is provably uncertain** — no retraining, and the base model's weight
 are never touched:
 
 $$
-E = E_\text{GNN} + \sum_{i<j} w(\rho)\,\Delta V(r), \qquad
-F = F_\text{GNN} - \lambda \sum_{i<j} w(\rho)\,\Delta V'(r)
+E = E_{\text{GNN}} + \sum_{i \lt j} w(\rho)\,\Delta V(r), \qquad
+F = F_{\text{GNN}} - \lambda \sum_{i \lt j} w(\rho)\,\Delta V'(r)
 $$
 
 <p align="center">
