@@ -41,22 +41,26 @@ $$
 
 ## Where the anchor acts — and what it fixes
 
-Typical metal–oxygen bonds in oxides sit at ~1.8–2.5 Å, and that is where the
-training data lives. The built-in ZBL of the foundation models guards only the
-`r → 0` limit. In between — the **compressed-but-bonded window, ~0.5–2 Å** — the
-GNN has essentially no data and extrapolates: the predicted repulsive wall comes
-out roughly an order of magnitude too soft.
+Training data lives near equilibrium bond lengths, and the built-in ZBL of the
+foundation models guards only the `r → 0` limit. In the **compressed-but-bonded
+window in between, the GNN has essentially no data** and extrapolates a wall that
+is far too soft: e.g. for the O–O pair at 0.8 Å the model's repulsion is 16 eV
+where ZBL demands 49 eV — **3× too soft** (real dimer-table data, figure below).
 
 <p align="center">
-  <img src="figures/anchor_zones.png" alt="Distance zones: where the anchor switches on" width="900">
+  <img src="figures/anchor_zones.png" alt="Where the anchor acts: real ZBL wall vs the model wall, per-pair correction window" width="900">
 </p>
 
-The anchor's pair term `w·[V_ZBL − V_dimer]₊` is exactly this missing repulsion,
-calibrated per element pair from dimer scans; below the dimer-table floor
-(~0.3 Å) the analytic ZBL takes over at full strength, extending validity into
-the keV collision regime. The gate keeps the correction off at near-equilibrium
-geometries — there the output is bit-identical to vanilla — and ramps it to full
-strength as local environments enter the gap.
+Every curve above is computed from the shipped code and data — the exact analytic
+ZBL (`anchor/scripts/pair_physics.py`) and the model's own dimer table
+`ΔV = [V_ZBL − V_dimer]₊·f_cut`. The correction window is **pair-specific**: it
+runs from the 0.30 Å table floor up to the pair's equilibrium bond, where `f_cut`
+takes it smoothly to zero — O–O 1.2 Å, Ti–O 2.0 Å, Sr–Ti 3.2 Å; the median upper
+cutoff over all 3 570 tabulated element pairs is **2.8 Å**. Below 0.30 Å the
+analytic ZBL takes over at full strength (keV collision regime). On top of this
+distance window the RND gate keeps the correction off on in-distribution
+structures (`w = 0`, bit-identical output) and ramps it to full strength on novel
+local environments.
 
 Two direct probes of that window (measured, not schematic):
 

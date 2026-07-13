@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
-"""Explainer figure: WHERE (in r) the physics anchor switches on.
+"""Where the anchor acts — drawn from REAL data.
 
-Single panel: schematic dimer pair-interaction V(r) on a log scale with
-three curves (true physics / vanilla softened MLIP / ZBL-anchored),
-zone tints (analytic core / coverage gap / training domain), and a thin
-gate-weight strip w(r) below.  Style matches make_method_scheme.py.
+Curves come from (1) the exact analytic ZBL used by the code
+(anchor/scripts/pair_physics.py) and (2) the model's real dimer table
+(dimer_packed.pkl: ΔV = [V_ZBL − V_dimer]₊ · f_cut on a per-pair r grid,
+floor 0.30 Å, cutoff at the pair's equilibrium bond).
+
+Usage:  python3 make_zones_figure.py [out.png] [dimer_packed.pkl]
+        (table path may also come from $ZBL_DIMER_PKL)
 """
+import os
+import pickle
 import sys
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -14,145 +20,124 @@ import numpy as np
 
 # ---- palette (poster) -------------------------------------------------------
 TEAL = "#17706b"
-TEAL_DK = "#0e4f4b"
-GREY_BG = "#f4f4f2"
-GREY_BD = "#c9c9c4"
-TEAL_BG = "#e9f2f0"
-TEAL_BD = "#9cc4bf"
-BOX_BD = "#5a5a5a"
+GREY_C = "#8a8a85"
 INK = "#1c1c1c"
 SUB = "#444444"
-ORANGE = "#b96a12"
-ORANGE_BG = "#fdf6ec"
 RED = "#b03a2e"
 GREEN = "#1e8449"
-GREY_MLIP = "#8a8a85"
-
+ORANGE = "#b96a12"
 MONO = {"family": "DejaVu Sans Mono"}
 
+# ---- exact ZBL (same constants as anchor/scripts/pair_physics.py) -----------
+K_E = 14.399645
+_C = np.array([0.18175, 0.50986, 0.28022, 0.02817])
+_D = np.array([3.19980, 0.94229, 0.40290, 0.20162])
 
-def sig(x):
-    return 1.0 / (1.0 + np.exp(-x))
+
+def zbl_V(Zi, Zj, r):
+    a = 0.46850 / (Zi ** 0.23 + Zj ** 0.23)
+    phi = (_C * np.exp(-_D * np.asarray(r)[:, None] / a)).sum(1)
+    return K_E * Zi * Zj / np.asarray(r) * phi
 
 
-# ---- schematic curves -------------------------------------------------------
-r = np.linspace(0.1, 3.5, 900)
+# ---- real dimer table --------------------------------------------------------
+OUT = sys.argv[1] if len(sys.argv) > 1 else "anchor_zones.png"
+PKL = (sys.argv[2] if len(sys.argv) > 2
+       else os.environ.get("ZBL_DIMER_PKL", "/path/to/dimer_packed.pkl"))
+d = pickle.load(open(PKL, "rb"))
+keys = [tuple(k) for k in d["keys"]]
+lens = np.asarray(d["lens"]); off = np.concatenate([[0], np.cumsum(lens)])
+R, DV, RCUT = np.asarray(d["r"]), np.asarray(d["dV"]), np.asarray(d["r_cut"])
 
-# 1) true short-range physics: screened-Coulomb-like wall, ~keV at r -> 0.2
-V_true = 400.0 * np.exp(-r / 0.3) / r
 
-# 2) vanilla MLIP: log-space dip (up to ~10x too low) inside 0.4..2.1 A,
-#    rejoins the wall for r < ~0.4 (built-in ZBL) and V_true for r >= 2.2
-dip = np.log(10.0) * sig((r - 0.42) / 0.07) * sig((2.05 - r) / 0.18)
-V_van = V_true * np.exp(-dip)
+def pair(Zi, Zj):
+    i = keys.index((Zi, Zj)) if (Zi, Zj) in keys else keys.index((Zj, Zi))
+    return R[off[i]:off[i + 1]], DV[off[i]:off[i + 1]], float(RCUT[i])
 
-# 3) ZBL-anchored: vanilla + w * [V_true - V_van]_+  with an r-driven gate
-w = sig((1.95 - r) / 0.09)
-V_anc = V_van + w * np.maximum(V_true - V_van, 0.0)
 
-# ---- figure -----------------------------------------------------------------
-FW, FH = 11.5, 7.0
-fig, (ax, axw) = plt.subplots(
-    2, 1, figsize=(FW, FH), dpi=220, sharex=True,
-    gridspec_kw=dict(height_ratios=[4.4, 1.0], hspace=0.09))
-fig.subplots_adjust(left=0.085, right=0.985, top=0.975, bottom=0.155)
+FLOOR = 0.30
+MED_RCUT = float(np.median(RCUT))
 
-XMIN, XMAX = 0.1, 3.5
-YMIN, YMAX = 5e-4, 5e4
-ax.set_xlim(XMIN, XMAX)
-ax.set_yscale("log")
-ax.set_ylim(YMIN, YMAX)
+fig, (ax, axs) = plt.subplots(
+    2, 1, figsize=(11.5, 8.2), dpi=220, sharex=True,
+    gridspec_kw={"height_ratios": [2.5, 1.35], "hspace": 0.10})
+fig.subplots_adjust(left=0.085, right=0.985, top=0.90, bottom=0.155)
+XMIN, XMAX = 0.15, 3.5
 
-# ---- zone tints (both axes) -------------------------------------------------
-for a in (ax, axw):
-    a.axvspan(XMIN, 0.3, color="#e6e6e2", zorder=0)
-    a.axvspan(0.3, 2.0, color=RED, alpha=0.055, zorder=0)
-    a.axvspan(2.2, XMAX, color=GREEN, alpha=0.07, zorder=0)
+# ================= main panel: O-O ============================================
+Z1 = Z2 = 8
+rt, dvt, rc_oo = pair(Z1, Z2)                    # table grid + real correction
+nz = dvt > 0
+v_zbl_t = zbl_V(Z1, Z2, rt)
+v_model = v_zbl_t - dvt                          # model wall = ZBL - ΔV (real)
 
-# zone top labels
-ax.text(0.205, 1.3e-3, "analytic ZBL core", rotation=90, ha="center",
-        va="bottom", fontsize=10.5, color=SUB)
-ax.text(1.15, 2.9e4, "coverage gap 0.5–2 Å\n(compressed but bonded)",
-        ha="center", va="top", fontsize=12.5, color=RED, fontweight="bold",
-        linespacing=1.35)
-ax.text(2.85, 2.9e4, "training domain\n(near equilibrium)",
-        ha="center", va="top", fontsize=12.5, color=GREEN, fontweight="bold",
-        linespacing=1.35)
+rr = np.linspace(XMIN, XMAX, 500)
+ax.plot(rr, zbl_V(Z1, Z2, rr), color=INK, lw=3.2,
+        label="analytic ZBL wall (exact)")
+ax.plot(rt[nz], v_model[nz], "--o", color=GREY_C, lw=2.4, ms=5,
+        label="vanilla model wall  =  ZBL − ΔV  (real table)")
+ax.fill_between(rt[nz], v_model[nz], v_zbl_t[nz], color=RED, alpha=0.18)
+ax.plot(rt[nz], v_zbl_t[nz], color=TEAL, lw=5.0, alpha=0.75, zorder=1,
+        label="anchored wall (w = 1):  model + ΔV")
 
-# ---- the problem: shaded gap between true physics and vanilla ---------------
-ax.fill_between(r, V_van, V_true, where=(V_true > V_van) & (r > 0.38) & (r < 2.15),
-                color=RED, alpha=0.18, lw=0, zorder=2)
+# real softness annotation at the r=0.8 grid point
+j = int(np.argmin(np.abs(rt - 0.8)))
+ax.annotate(f"at {rt[j]:.1f} Å the model wall is\n"
+            f"{v_model[j]:.0f} eV vs {v_zbl_t[j]:.0f} eV ZBL "
+            f"(×{v_zbl_t[j]/v_model[j]:.1f} too soft)",
+            xy=(rt[j], v_model[j]), xytext=(1.16, 0.55),
+            fontsize=11.5, color=RED, ha="left",
+            arrowprops=dict(arrowstyle="-|>", color=RED, lw=1.8))
+ax.annotate("missing repulsion ΔV\n(real dimer-table data)",
+            xy=(0.62, 60), xytext=(0.26, 700),
+            fontsize=11.5, color=RED, fontweight="bold", ha="left",
+            arrowprops=dict(arrowstyle="-|>", color=RED, lw=1.8))
 
-# ---- curves -----------------------------------------------------------------
-ax.plot(r, V_true, color=INK, lw=3.6, zorder=3, solid_capstyle="round",
-        label="true short-range physics (ZBL / DFT dimer)")
-ax.plot(r, V_van, color=GREY_MLIP, lw=2.6, ls=(0, (5, 2.4)), zorder=4,
-        label="vanilla foundation MLIP (softened)")
-ax.plot(r, V_anc, color=TEAL, lw=2.3, zorder=5, solid_capstyle="round",
-        label="ZBL-anchored")
+ax.set_yscale("log"); ax.set_ylim(0.3, 15000); ax.set_xlim(XMIN, XMAX)
+ax.set_ylabel("pair energy (eV)", fontsize=13)
+ax.tick_params(labelsize=11.5)
+ax.legend(loc="lower right", bbox_to_anchor=(0.99, 0.03), fontsize=11.5,
+          frameon=False)
 
-# ---- annotations ------------------------------------------------------------
-# problem label, below the curves, arrow into the shaded wedge
-ax.annotate("missing repulsion — GNN extrapolates",
-            xy=(0.95, 2.2), xytext=(1.22, 0.02),
-            fontsize=11.5, color=RED, fontweight="bold",
-            ha="center", va="center",
-            arrowprops=dict(arrowstyle="-|>", color=RED, lw=1.8,
-                            shrinkA=6, shrinkB=2, mutation_scale=16))
+# ---- zones (data-driven boundaries) ----
+for a in (ax, axs):
+    a.axvspan(XMIN, FLOOR, color="#9a9a94", alpha=0.18, lw=0)
+    a.axvspan(FLOOR, rc_oo, color=RED, alpha=0.075, lw=0)
+    a.axvspan(rc_oo, XMAX, color=GREEN, alpha=0.07, lw=0)
+ax.text((XMIN + FLOOR) / 2, 9.0, "analytic ZBL core < 0.30 Å", fontsize=10.5,
+        color="#6d6d68", ha="center", va="center", fontweight="bold", rotation=90)
+ax.text((FLOOR + rc_oo) / 2 + 0.05, 8800,
+        f"correction window (O–O):\n{FLOOR:.2f}–{rc_oo:.1f} Å", fontsize=12.5,
+        color=RED, ha="center", va="top", fontweight="bold")
+ax.text((rc_oo + XMAX) / 2, 8800,
+        "beyond the equilibrium bond:\nΔV ≡ 0  →  bit-identical to vanilla",
+        fontsize=12.5, color=GREEN, ha="center", va="top", fontweight="bold")
+ax.text(0.985, 0.40, "O–O pair — every curve from real data", fontsize=11.5,
+        color=INK, fontweight="bold", ha="right", transform=ax.transAxes)
 
-# gate-open annotation: anchored curve follows the wall
-ax.annotate("w → 1:  + w·[V_ZBL − V_dimer]₊",
-            xy=(0.52, 190.0), xytext=(0.72, 2.6e3),
-            fontsize=12, color=TEAL_DK, family=MONO["family"], fontweight="bold",
-            ha="left", va="center",
-            arrowprops=dict(arrowstyle="-|>", color=TEAL, lw=1.8,
-                            shrinkA=4, shrinkB=3, mutation_scale=16))
+# ================= strip: ΔV for three real pairs =============================
+for (zi, zj, lab, c) in [(8, 8, "O–O", RED), (22, 8, "Ti–O", TEAL),
+                         (38, 22, "Sr–Ti", ORANGE)]:
+    r_, dv_, rc_ = pair(zi, zj)
+    m = dv_ > 0
+    axs.plot(r_[m], dv_[m], "-o", color=c, lw=2.0, ms=4,
+             label=f"{lab}  (cutoff {rc_:.1f} Å)")
+    axs.axvline(rc_, color=c, ls=(0, (4, 3)), lw=1.6, alpha=0.8)
+axs.set_yscale("log"); axs.set_ylim(0.1, 6000); axs.set_xlim(XMIN, XMAX)
+axs.set_ylabel("ΔV added (eV)", fontsize=13)
+axs.set_xlabel("interatomic distance r (Å)", fontsize=13.5)
+axs.tick_params(labelsize=11.5)
+axs.legend(loc="upper right", fontsize=11, frameon=False, ncol=1)
+axs.text(0.33, 0.05,
+         f"upper cutoff = pair's equilibrium bond;  median over all "
+         f"{len(keys):,} pairs: {MED_RCUT:.1f} Å".replace(",", " "),
+         fontsize=11, color=SUB, transform=axs.transAxes)
 
-# gate-closed annotation: bit-identical tail
-ax.annotate("w = 0 → bit-identical",
-            xy=(2.72, 0.017), xytext=(2.32, 0.9),
-            fontsize=12, color=TEAL_DK, family=MONO["family"], fontweight="bold",
-            ha="left", va="center",
-            arrowprops=dict(arrowstyle="-|>", color=TEAL, lw=1.8,
-                            shrinkA=4, shrinkB=4, mutation_scale=16))
+fig.text(0.085, 0.030,
+         "Real data: exact analytic ZBL (pair_physics.zbl_V) + the MACE-MH dimer table\n"
+         "ΔV = [V_ZBL − V_dimer]₊·f_cut (floor 0.30 Å, cutoff at the pair's equilibrium bond).\n"
+         "The RND gate additionally zeroes ΔV on in-distribution structures (w = 0).",
+         fontsize=10.5, color=SUB, va="bottom")
 
-# ---- axes cosmetics ---------------------------------------------------------
-ax.set_ylabel("pair energy (schematic, log scale)", fontsize=12.5, color=INK)
-ax.set_yticks([1e-3, 1e-1, 1e1, 1e3])
-ax.set_yticklabels(["1 meV", "0.1 eV", "10 eV", "1 keV"], fontsize=11)
-ax.tick_params(axis="both", labelsize=11, colors=SUB, length=3.5)
-ax.minorticks_off()
-for s in ("top", "right"):
-    ax.spines[s].set_visible(False)
-for s in ("left", "bottom"):
-    ax.spines[s].set_color(GREY_BD)
-
-leg = ax.legend(loc="upper right", bbox_to_anchor=(0.995, 0.775),
-                frameon=False, fontsize=11.5, handlelength=2.5,
-                borderaxespad=0.2, labelcolor=INK)
-
-# ---- gate strip -------------------------------------------------------------
-axw.plot(r, w, color=TEAL, lw=2.6, solid_capstyle="round", zorder=3)
-axw.fill_between(r, 0, w, color=TEAL, alpha=0.14, lw=0, zorder=2)
-axw.set_ylim(-0.12, 1.22)
-axw.set_yticks([0, 1])
-axw.set_yticklabels(["0", "1"], fontsize=11)
-axw.set_ylabel("gate w", fontsize=12.5, color=INK)
-axw.set_xlabel("interatomic distance r (Å)", fontsize=12.5, color=INK)
-axw.set_xticks(np.arange(0.5, 3.51, 0.5))
-axw.tick_params(axis="both", labelsize=11, colors=SUB, length=3.5)
-for s in ("top", "right"):
-    axw.spines[s].set_visible(False)
-for s in ("left", "bottom"):
-    axw.spines[s].set_color(GREY_BD)
-
-# ---- footnote ---------------------------------------------------------------
-fig.text(0.5, 0.018,
-         "The gate is driven by descriptor novelty ρ, not by r — "
-         "for close contacts they coincide; on near-equilibrium structures "
-         "w ≡ 0 and the output is exactly vanilla.",
-         ha="center", va="bottom", fontsize=10, color=SUB)
-
-out = sys.argv[1] if len(sys.argv) > 1 else "anchor_zones.png"
-fig.savefig(out, dpi=220, facecolor="white")
-print("saved", out)
+fig.savefig(OUT, facecolor="white")
+print("saved", OUT)
