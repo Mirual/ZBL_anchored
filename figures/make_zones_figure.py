@@ -78,18 +78,21 @@ ax.fill_between(rt[nz], v_model[nz], v_zbl_t[nz], color=RED, alpha=0.18)
 ax.plot(rt[nz], v_zbl_t[nz], color=TEAL, lw=6.0, alpha=0.95, zorder=5,
         solid_capstyle="round", label="anchored wall (w = 1):  model + ΔV = ZBL")
 
-# real softness annotation at the r=0.8 grid point
+# the ADDITION itself: teal up-arrows from the model wall to the ZBL wall
+for r_up in (0.72, 0.85, 1.00):
+    k = int(np.argmin(np.abs(rt - r_up)))
+    ax.annotate("", xy=(rt[k], v_zbl_t[k] * 0.93), xytext=(rt[k], v_model[k] * 1.07),
+                arrowprops=dict(arrowstyle="-|>", color=TEAL, lw=2.4,
+                                mutation_scale=16), zorder=6)
+
+# real softness annotation at the r=0.8 grid point (empty lower-left area)
 j = int(np.argmin(np.abs(rt - 0.8)))
-ax.annotate(f"at {rt[j]:.1f} Å the model wall is\n"
-            f"{v_model[j]:.0f} eV vs {v_zbl_t[j]:.0f} eV ZBL "
-            f"(×{v_zbl_t[j]/v_model[j]:.1f} too soft)",
-            xy=(rt[j], v_model[j]), xytext=(1.16, 0.55),
+ax.annotate(f"model wall ×{v_zbl_t[j]/v_model[j]:.1f} too soft at {rt[j]:.1f} Å\n"
+            f"({v_model[j]:.0f} eV instead of {v_zbl_t[j]:.0f} eV ZBL)",
+            xy=(rt[j], v_model[j] * 0.88), xytext=(0.33, 0.85),
             fontsize=11.5, color=RED, ha="left",
-            arrowprops=dict(arrowstyle="-|>", color=RED, lw=1.8))
-ax.annotate("missing repulsion ΔV\n(real dimer-table data)",
-            xy=(0.62, 60), xytext=(0.26, 700),
-            fontsize=11.5, color=RED, fontweight="bold", ha="left",
-            arrowprops=dict(arrowstyle="-|>", color=RED, lw=1.8))
+            arrowprops=dict(arrowstyle="-|>", color=RED, lw=1.8,
+                            connectionstyle="arc3,rad=-0.15"))
 
 ax.set_yscale("log"); ax.set_ylim(0.3, 15000); ax.set_xlim(XMIN, XMAX)
 ax.set_ylabel("pair energy (eV)", fontsize=13)
@@ -107,6 +110,9 @@ ax.text((XMIN + FLOOR) / 2, 9.0, "analytic ZBL core < 0.30 Å", fontsize=10.5,
 ax.text((FLOOR + rc_oo) / 2 + 0.05, 8800,
         f"correction window (O–O):\n{FLOOR:.2f}–{rc_oo:.1f} Å", fontsize=12.5,
         color=RED, ha="center", va="top", fontweight="bold")
+ax.text((FLOOR + rc_oo) / 2 + 0.05, 2900,
+        "anchor ADDS ΔV ↑\nlifting the wall back to ZBL", fontsize=11.5,
+        color=TEAL, ha="center", va="top", fontweight="bold")
 ax.text((rc_oo + XMAX) / 2, 8800,
         "beyond the equilibrium bond:\nΔV ≡ 0  →  bit-identical to vanilla",
         fontsize=12.5, color=GREEN, ha="center", va="top", fontweight="bold")
