@@ -58,10 +58,8 @@ def pair(Zi, Zj):
 FLOOR = 0.30
 MED_RCUT = float(np.median(RCUT))
 
-fig, (ax, axs) = plt.subplots(
-    2, 1, figsize=(11.5, 8.2), dpi=220, sharex=True,
-    gridspec_kw={"height_ratios": [2.5, 1.35], "hspace": 0.10})
-fig.subplots_adjust(left=0.085, right=0.985, top=0.90, bottom=0.155)
+fig, ax = plt.subplots(figsize=(11.5, 6.4), dpi=220)
+fig.subplots_adjust(left=0.085, right=0.985, top=0.97, bottom=0.235)
 XMIN, XMAX = 0.15, 3.5
 
 # ================= main panel: O-O ============================================
@@ -77,8 +75,8 @@ ax.plot(rr, zbl_V(Z1, Z2, rr), color=INK, lw=3.2,
 ax.plot(rt[nz], v_model[nz], "--o", color=GREY_C, lw=2.4, ms=5,
         label="vanilla model wall  =  ZBL − ΔV  (real table)")
 ax.fill_between(rt[nz], v_model[nz], v_zbl_t[nz], color=RED, alpha=0.18)
-ax.plot(rt[nz], v_zbl_t[nz], color=TEAL, lw=5.0, alpha=0.75, zorder=1,
-        label="anchored wall (w = 1):  model + ΔV")
+ax.plot(rt[nz], v_zbl_t[nz], color=TEAL, lw=6.0, alpha=0.95, zorder=5,
+        solid_capstyle="round", label="anchored wall (w = 1):  model + ΔV = ZBL")
 
 # real softness annotation at the r=0.8 grid point
 j = int(np.argmin(np.abs(rt - 0.8)))
@@ -100,10 +98,10 @@ ax.legend(loc="lower right", bbox_to_anchor=(0.99, 0.03), fontsize=11.5,
           frameon=False)
 
 # ---- zones (data-driven boundaries) ----
-for a in (ax, axs):
-    a.axvspan(XMIN, FLOOR, color="#9a9a94", alpha=0.18, lw=0)
-    a.axvspan(FLOOR, rc_oo, color=RED, alpha=0.075, lw=0)
-    a.axvspan(rc_oo, XMAX, color=GREEN, alpha=0.07, lw=0)
+ax.axvspan(XMIN, FLOOR, color="#9a9a94", alpha=0.18, lw=0)
+ax.axvspan(FLOOR, rc_oo, color=RED, alpha=0.075, lw=0)
+ax.axvspan(rc_oo, XMAX, color=GREEN, alpha=0.07, lw=0)
+ax.set_xlabel("interatomic distance r (Å)", fontsize=13.5)
 ax.text((XMIN + FLOOR) / 2, 9.0, "analytic ZBL core < 0.30 Å", fontsize=10.5,
         color="#6d6d68", ha="center", va="center", fontweight="bold", rotation=90)
 ax.text((FLOOR + rc_oo) / 2 + 0.05, 8800,
@@ -115,27 +113,11 @@ ax.text((rc_oo + XMAX) / 2, 8800,
 ax.text(0.985, 0.40, "O–O pair — every curve from real data", fontsize=11.5,
         color=INK, fontweight="bold", ha="right", transform=ax.transAxes)
 
-# ================= strip: ΔV for three real pairs =============================
-for (zi, zj, lab, c) in [(8, 8, "O–O", RED), (22, 8, "Ti–O", TEAL),
-                         (38, 22, "Sr–Ti", ORANGE)]:
-    r_, dv_, rc_ = pair(zi, zj)
-    m = dv_ > 0
-    axs.plot(r_[m], dv_[m], "-o", color=c, lw=2.0, ms=4,
-             label=f"{lab}  (cutoff {rc_:.1f} Å)")
-    axs.axvline(rc_, color=c, ls=(0, (4, 3)), lw=1.6, alpha=0.8)
-axs.set_yscale("log"); axs.set_ylim(0.1, 6000); axs.set_xlim(XMIN, XMAX)
-axs.set_ylabel("ΔV added (eV)", fontsize=13)
-axs.set_xlabel("interatomic distance r (Å)", fontsize=13.5)
-axs.tick_params(labelsize=11.5)
-axs.legend(loc="upper right", fontsize=11, frameon=False, ncol=1)
-axs.text(0.33, 0.05,
-         f"upper cutoff = pair's equilibrium bond;  median over all "
-         f"{len(keys):,} pairs: {MED_RCUT:.1f} Å".replace(",", " "),
-         fontsize=11, color=SUB, transform=axs.transAxes)
-
 fig.text(0.085, 0.030,
-         "Real data: exact analytic ZBL (pair_physics.zbl_V) + the MACE-MH dimer table\n"
-         "ΔV = [V_ZBL − V_dimer]₊·f_cut (floor 0.30 Å, cutoff at the pair's equilibrium bond).\n"
+         "Real data: exact analytic ZBL (pair_physics.zbl_V) + the MACE-MH dimer table "
+         "ΔV = [V_ZBL − V_dimer]₊·f_cut.\n"
+         "The window is pair-specific: floor 0.30 Å, cutoff at the pair's equilibrium bond "
+         "(O–O 1.2 Å, Ti–O 2.0 Å, Sr–Ti 3.2 Å; median over 3 570 pairs 2.8 Å).\n"
          "The RND gate additionally zeroes ΔV on in-distribution structures (w = 0).",
          fontsize=10.5, color=SUB, va="bottom")
 
