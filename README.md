@@ -39,6 +39,69 @@ $$
 - **ΔV (pair physics)** — the missing short-range repulsion `w·[V_ZBL − V_dimer]₊`
   calibrated from dimer scans. ZBL is the special case `w → 1` as `r → 0`.
 
+## Where the anchor acts — and what it fixes
+
+Typical metal–oxygen bonds in oxides sit at ~1.8–2.5 Å, and that is where the
+training data lives. The built-in ZBL of the foundation models guards only the
+`r → 0` limit. In between — the **compressed-but-bonded window, ~0.5–2 Å** — the
+GNN has essentially no data and extrapolates: the predicted repulsive wall comes
+out roughly an order of magnitude too soft.
+
+<p align="center">
+  <img src="figures/anchor_zones.png" alt="Distance zones: where the anchor switches on" width="900">
+</p>
+
+The anchor's pair term `w·[V_ZBL − V_dimer]₊` is exactly this missing repulsion,
+calibrated per element pair from dimer scans; below the dimer-table floor
+(~0.3 Å) the analytic ZBL takes over at full strength, extending validity into
+the keV collision regime. The gate keeps the correction off at near-equilibrium
+geometries — there the output is bit-identical to vanilla — and ramps it to full
+strength as local environments enter the gap.
+
+Two direct probes of that window (measured, not schematic):
+
+<p align="center">
+  <img src="figures/panels/poster_md.png" alt="Head-on collision turning points vs ab initio" width="49%">
+  <img src="figures/panels/poster_highP.png" alt="Compression stress test: vanilla collapses, anchor stays smooth" width="49%">
+</p>
+
+*Left — head-on collisions:* ab initio (MP2) turning points for O–O and Ti–O
+recoils at 60–200 eV lie at `r_min ≈ 0.45–0.9 Å`, squarely inside the gap.
+Without ZBL the vanilla model lets atoms punch through the wall (`r_min` 0.45 Å
+vs the 0.47 Å reference at 200 eV); the anchored model stops them at or above
+the reference. *Right — static compression:* compressing an O₂Ti₁₂ perovskite
+cell, vanilla MACE-MH-0's energy flattens and the structure collapses at
+`V/V₀ ≈ 0.63` (atoms fuse, minimum distance → 0.22 Å); the anchored model rises
+steeply, as physics demands. Over 40 compressed structures, collapses halve
+(6/40 → 3/40) and never get worse.
+
+## Why short range decides waste-form performance
+
+Ceramic waste forms — pyrochlore, zirconolite, perovskite-family titanates (our
+distorted evaluation set spans 19 elements) — immobilize actinides, and the
+actinides irradiate their own host from within: every α-decay launches a recoil
+nucleus carrying 10–100 keV. The recoil sets off a collision cascade, and during
+its ballistic phase atoms are driven to separations of **0.3–1.5 Å** — precisely
+the window where foundation MLIPs soften.
+
+<p align="center">
+  <img src="figures/radiation_cascade.png" alt="Radiation cascade and what the short-range wall controls" width="900">
+</p>
+
+The short-range wall is what everything downstream depends on: it sets the
+threshold displacement energies `E_d`, which set defect production per cascade
+(Frenkel pairs), which set the amorphization dose, swelling and leach rate —
+the quantities that decide the predicted service life of the waste form. A wall
+that is too soft gives wrong `E_d`, wrong defect counts, and in the worst case
+lets the simulation collapse mid-cascade.
+
+The anchor restores the wall only where it is needed, so the well-tested
+baseline behaviour (elasticity, WBM stability, 2-MeV cascade observables) stays
+untouched. The radiation-damage validation suite lives in
+[`anchor/raddmg/`](anchor/raddmg/) — SrTiO₃ `E_d` checks, defect statics, recoil
+sweeps and Wigner–Seitz cascade analysis; MD deployment via
+[`lammps/`](lammps/) runs to ~70 k atoms per GPU.
+
 ## Key results — force R² on three held-out sets (vanilla → anchor)
 
 | Model | MPtrj (baseline) | weakly distorted (target) | distorted (compressed OOD) | ΔF-MAE | overhead (fused) |
